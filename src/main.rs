@@ -13,6 +13,7 @@ async fn event_handler(
 ) -> Result<(), Error> {
     match event {
         serenity::FullEvent::Message { new_message } => {
+            println!("{}", new_message.content);
             if new_message.content.contains("fuck") {
                 let response = format!("Hey {}, don't say bad words.", new_message.author.name);
                 if let Err(e) = new_message.channel_id.say(&ctx.http, response).await {
