@@ -12,14 +12,17 @@ async fn event_handler(
     _data: &Data,
 ) -> Result<(), Error> {
     match event {
+        serenity::FullEvent::Ready { data_about_bot, .. } => {
+            println!("Logged in as {}", data_about_bot.user.name)
+        }
         serenity::FullEvent::Message { new_message } => {
             println!("{}", new_message.content);
             if new_message.content.to_lowercase().contains("fuck") {
                 let response = format!("Hey {}, don't say bad words.", new_message.author.name);
                 new_message.reply(ctx, response).await?;
             }
-        },
-        _ =>{}, 
+        }
+        _ =>{} 
     };
     Ok(())
 }
@@ -40,12 +43,11 @@ async fn main() {
     dotenv().expect("no dotenv file found");
     let token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN in env file");
 
-    let intents = serenity::GatewayIntents::non_privileged();
+    let intents = serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions { 
             commands: vec![age()],
-            // fix this with new 
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
