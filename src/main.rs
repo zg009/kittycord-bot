@@ -1,3 +1,4 @@
+use dotenv::dotenv;
 use poise::serenity_prelude as serenity;
 
 struct Data {}
@@ -17,7 +18,8 @@ async fn age(
 
 #[tokio::main]
 async fn main() {
-    let token = std::env::var("DISCORD_TOKEN").expect("Missing DISCOTRD_TOKEN in env file");
+    dotenv().expect("no dotenv file found");
+    let token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN in env file");
 
     let intents = serenity::GatewayIntents::non_privileged();
 
