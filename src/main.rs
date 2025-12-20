@@ -1,5 +1,5 @@
 use dotenv::dotenv;
-use poise::serenity_prelude::{self as serenity, FullEvent};
+use poise::serenity_prelude::{self as serenity};
 
 struct Data {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -7,19 +7,16 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 
 async fn event_handler(
     ctx: &serenity::Context,
-    event: &FullEvent,
+    event: &serenity::FullEvent,
     _framework: poise::FrameworkContext<'_, Data, Error>,
     _data: &Data,
 ) -> Result<(), Error> {
     match event {
         serenity::FullEvent::Message { new_message } => {
             println!("{}", new_message.content);
-            if new_message.content.contains("fuck") {
+            if new_message.content.to_lowercase().contains("fuck") {
                 let response = format!("Hey {}, don't say bad words.", new_message.author.name);
-                if let Err(e) = new_message.channel_id.say(&ctx.http, response).await {
-                    eprintln!("Error sending message: {:?}", e);
-                };
-                // ctx.say(response).await?;
+                new_message.reply(ctx, response).await?;
             }
         },
         _ =>{}, 
@@ -48,6 +45,7 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions { 
             commands: vec![age()],
+            // fix this with new 
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
