@@ -1,7 +1,12 @@
-use dotenv::dotenv;
-use poise::serenity_prelude::{self as serenity};
+use std::{collections::HashMap, fs, sync::Mutex};
 
-struct Data {}
+use dotenv::dotenv;
+use poise::serenity_prelude::{self as serenity, UserId};
+
+struct Data {
+    swear_list: Vec<String>,
+    swear_counters: Mutex<HashMap<UserId, u32>>
+}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -18,6 +23,7 @@ async fn event_handler(
         serenity::FullEvent::Message { new_message } => {
             println!("{}", new_message.content);
             if new_message.content.to_lowercase().contains("fuck") {
+                
                 let response = format!("Hey {}, don't say bad words.", new_message.author_nick(ctx).await.unwrap_or(new_message.author.name.clone()));
                 new_message.reply_mention(ctx, response).await?;
                 // new_message.reply(ctx, response).await?;
@@ -44,6 +50,10 @@ async fn main() {
     dotenv().expect("no dotenv file found");
     let token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN in env file");
 
+    let default_swear_list: Vec<String> = fs::read_to_string("../default_swears.txt").unwrap().split('\n').map(|s| s.to_string()).collect();
+
+    // let saved_swear_counters: HashMap<UserId, u32
+
     let intents = serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
 
     let framework = poise::Framework::builder()
@@ -57,7 +67,10 @@ async fn main() {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                Ok(Data {
+                    swear_list: default_swear_list,
+                    swear_counters: Mutex::new(HashMap::new())
+                })
             })
         })
         .build();
