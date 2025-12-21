@@ -18,8 +18,9 @@ async fn event_handler(
         serenity::FullEvent::Message { new_message } => {
             println!("{}", new_message.content);
             if new_message.content.to_lowercase().contains("fuck") {
-                let response = format!("Hey {}, don't say bad words.", new_message.author.name);
-                new_message.reply(ctx, response).await?;
+                let response = format!("Hey {}, don't say bad words.", new_message.author_nick(ctx).await.unwrap_or(new_message.author.name.clone()));
+                new_message.reply_mention(ctx, response).await?;
+                // new_message.reply(ctx, response).await?;
             }
         }
         _ =>{} 
