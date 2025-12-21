@@ -809,6 +809,8 @@ version = "0.1.0"
 dependencies = [
  "dotenv",
  "poise",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
