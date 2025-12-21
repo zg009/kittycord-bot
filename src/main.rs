@@ -1,7 +1,9 @@
-use std::{collections::HashMap, fs::{self, File}, io::Read, sync::Mutex};
-
+use std::{collections::HashMap, fs::{self, File}, io::Read};
+use tokio::sync::Mutex;
 use dotenv::dotenv;
 use poise::serenity_prelude::{self as serenity, UserId};
+
+use std::collections::hash_map::Entry;
 
 type SwearCounterMap = HashMap<UserId, u32>;
 type PersonalSwearList = HashMap<UserId, Vec<String>>;
@@ -24,7 +26,7 @@ fn read_scm_from_file(path: &str) -> SwearCounterMap {
 struct Data {
     default_swear_list: Vec<String>,
     swear_lists: Mutex<PersonalSwearList>,
-    swear_counters: Mutex<SwearCounterMap>
+    swear_counters: Mutex<SwearCounterMap>,
 }
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -42,7 +44,6 @@ async fn event_handler(
         serenity::FullEvent::Message { new_message } => {
             println!("{}", new_message.content);
             if new_message.content.to_lowercase().contains("fuck") {
-                
                 let response = format!("Hey {}, don't say bad words.", new_message.author_nick(ctx).await.unwrap_or(new_message.author.name.clone()));
                 new_message.reply_mention(ctx, response).await?;
                 // new_message.reply(ctx, response).await?;
@@ -51,6 +52,34 @@ async fn event_handler(
         _ =>{} 
     };
     Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
+async fn create_swear_jar(
+    ctx: Context<'_>,
+) -> Result<(), Error> {
+    let curr_user = &ctx.author().id;
+    let mut swear_lists = ctx.data().swear_lists.lock().await;
+    let mut inserted = true;
+    match swear_lists.entry(*curr_user) {
+        Entry::Vacant(_) => {
+            inserted = false;
+            swear_lists.insert(*curr_user, ctx.data().default_swear_list.clone());
+        },
+        _ => { },
+    }
+    drop(swear_lists);
+    if inserted {
+        ctx.reply("you already are being tracked by the swear jar!").await.unwrap();
+    };
+        // .or_insert_with(|| ctx.data().default_swear_list.clone());
+    Ok(())
+    // if let Some(_) = ctx.data().swear_lists.lock().unwrap().get(curr_user) {
+    //     ctx.reply("you already are being tracked by the swear jar!").await?;
+    // } else {
+    //     ctx.data().swear_lists.lock().unwrap().insert(*curr_user, ctx.data().default_swear_list.clone());
+    // }
+    // Ok(())
 }
 
 #[poise::command(slash_command, prefix_command)]
