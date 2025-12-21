@@ -56,6 +56,28 @@ async fn event_handler(
 }
 
 #[poise::command(slash_command, prefix_command)]
+async fn add_swear(
+    ctx: Context<'_>
+) -> Result<(), Error> {
+    todo!()
+}
+
+#[poise::command(slash_command, prefix_command)]
+async fn quit_swear_jar(
+    ctx: Context<'_>
+) -> Result<(), Error> {
+    todo!()
+}
+
+#[poise::command(slash_command, prefix_command)]
+async fn public_shame(
+    ctx:Context<'_>,
+    #[description="User you want to publicly shame"] user: Option<serenity::User>,
+) -> Result<(), Error> {
+    todo!()
+}
+
+#[poise::command(slash_command, prefix_command)]
 async fn create_swear_jar(
     ctx: Context<'_>,
 ) -> Result<(), Error> {
@@ -73,14 +95,7 @@ async fn create_swear_jar(
     if inserted {
         ctx.reply("you already are being tracked by the swear jar!").await.unwrap();
     };
-        // .or_insert_with(|| ctx.data().default_swear_list.clone());
     Ok(())
-    // if let Some(_) = ctx.data().swear_lists.lock().unwrap().get(curr_user) {
-    //     ctx.reply("you already are being tracked by the swear jar!").await?;
-    // } else {
-    //     ctx.data().swear_lists.lock().unwrap().insert(*curr_user, ctx.data().default_swear_list.clone());
-    // }
-    // Ok(())
 }
 
 #[poise::command(slash_command, prefix_command)]
