@@ -28,6 +28,7 @@ struct Data {
     swear_lists: Mutex<PersonalSwearList>,
     swear_counters: Mutex<SwearCounterMap>,
 }
+
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -65,10 +66,10 @@ async fn create_swear_jar(
         Entry::Vacant(_) => {
             inserted = false;
             swear_lists.insert(*curr_user, ctx.data().default_swear_list.clone());
+            ctx.reply(format!("swear jar created for {}", ctx.author())).await.unwrap();
         },
         _ => { },
     }
-    drop(swear_lists);
     if inserted {
         ctx.reply("you already are being tracked by the swear jar!").await.unwrap();
     };
@@ -98,7 +99,7 @@ async fn main() {
     dotenv().expect("no dotenv file found");
     let token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN in env file");
 
-    let default_swear_list: Vec<String> = fs::read_to_string("../default_swears.txt").unwrap().split('\n').map(|s| s.to_string()).collect();
+    let default_swear_list: Vec<String> = fs::read_to_string("default_swears.txt").expect("could not find default swears file").split('\n').map(|s| s.to_string()).collect();
 
     // let saved_swear_counters: HashMap<UserId, u32> =
 
@@ -106,7 +107,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions { 
-            commands: vec![age()],
+            commands: vec![age(), create_swear_jar()],
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
