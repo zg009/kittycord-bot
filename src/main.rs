@@ -2,11 +2,12 @@ use std::{collections::HashMap, fs::{self, File}, io::Read};
 use tokio::sync::Mutex;
 use dotenv::dotenv;
 use poise::serenity_prelude::{self as serenity, UserId};
+use regex::Regex;
 
 use std::collections::hash_map::Entry;
 
 type SwearCounterMap = HashMap<UserId, u32>;
-type PersonalSwearList = HashMap<UserId, Vec<String>>;
+type PersonalSwearList = HashMap<UserId, Vec<Regex>>;
 
 fn write_scm_to_file(swear_counter_map: &SwearCounterMap, file_path: &str) -> Result<(), Error> {
     let file = File::create(file_path).expect("path for swear counter map file could not be found");
@@ -24,7 +25,7 @@ fn read_scm_from_file(path: &str) -> SwearCounterMap {
 }
 
 struct Data {
-    default_swear_list: Vec<String>,
+    default_swear_list: Vec<Regex>,
     swear_lists: Mutex<PersonalSwearList>,
     swear_counters: Mutex<SwearCounterMap>,
 }
@@ -114,9 +115,12 @@ async fn main() {
     dotenv().expect("no dotenv file found");
     let token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN in env file");
 
-    let default_swear_list: Vec<String> = fs::read_to_string("default_swears.txt").expect("could not find default swears file").split('\n').map(|s| s.to_string()).collect();
+    let default_swear_list: Vec<Regex> = fs::read_to_string("default_swears.txt").expect("could not find default swears file").split('\n').map(|s| Regex::new(s.trim()).unwrap()).collect();
 
-    // let saved_swear_counters: HashMap<UserId, u32> =
+    let saved_swear_counters: HashMap<UserId, u32> = match fs::read_to_string("saved_swear_counters.txt")  {
+        Ok(s) => serde_json::from_str(&s).expect("file could not be parsed to hashmap"),
+        Err(_) => HashMap::new(),
+    };
 
     let intents = serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
 
@@ -134,7 +138,7 @@ async fn main() {
                 Ok(Data {
                     default_swear_list: default_swear_list,
                     swear_lists: Mutex::new(HashMap::new()),
-                    swear_counters: Mutex::new(HashMap::new())
+                    swear_counters: Mutex::new(saved_swear_counters)
                 })
             })
         })
