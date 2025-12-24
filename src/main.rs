@@ -34,10 +34,10 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 async fn event_handler(
-    ctx: &serenity::Context,
+    _ctx: &serenity::Context,
     event: &serenity::FullEvent,
     _framework: poise::FrameworkContext<'_, Data, Error>,
-    _data: &Data,
+    data: &Data,
 ) -> Result<(), Error> {
     match event {
         serenity::FullEvent::Ready { data_about_bot, .. } => {
@@ -45,11 +45,27 @@ async fn event_handler(
         }
         serenity::FullEvent::Message { new_message } => {
             println!("{}", new_message.content);
-            if new_message.content.to_lowercase().contains("fuck") {
-                let response = format!("Hey {}, don't say bad words.", new_message.author_nick(ctx).await.unwrap_or(new_message.author.name.clone()));
-                new_message.reply_mention(ctx, response).await?;
-                // new_message.reply(ctx, response).await?;
-            }
+            let unlocked = data.swear_lists.lock().await;
+            let swear_regexes = unlocked.get(&new_message.author.id);
+            println!("{} swears", swear_regexes.iter().len());
+            let content = &new_message.content.to_lowercase();
+            println!("message content: {}", content);
+            
+            let result = match swear_regexes {
+                Some(regexes) => regexes.iter().map(|re| {
+                    println!("{} is match: {}", re.as_str(), re.is_match(content));
+                    if re.is_match(content) { 
+                        return 1; 
+                    } 
+                    else { 
+                        return 0; 
+                    }
+                }).sum(),
+                None => { 0 },
+            };
+            println!("{} count of result", result);
+            data.swear_counters.lock().await.entry(new_message.author.id).and_modify(|e| *e += result);
+            println!("{} added {} swears", &new_message.author.id, result);
         }
         _ =>{} 
     };
@@ -115,8 +131,12 @@ async fn main() {
     dotenv().expect("no dotenv file found");
     let token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN in env file");
 
-    let default_swear_list: Vec<Regex> = fs::read_to_string("default_swears.txt").expect("could not find default swears file").split('\n').map(|s| Regex::new(s.trim()).unwrap()).collect();
-
+    let default_swear_list: Vec<Regex> = fs::read_to_string("default_swears.txt")
+        .expect("could not find default swears file")
+        .split_whitespace()
+        .map(|s| Regex::new(s.trim()).unwrap())
+        .collect();
+    default_swear_list.iter().for_each(|r| println!("swear regex : {}", r.as_str()));
     let saved_swear_counters: HashMap<UserId, u32> = match fs::read_to_string("saved_swear_counters.txt")  {
         Ok(s) => serde_json::from_str(&s).expect("file could not be parsed to hashmap"),
         Err(_) => HashMap::new(),
