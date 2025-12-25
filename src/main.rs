@@ -262,16 +262,16 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions { 
             commands: vec![
-                // age(), 
-                // create_swear_jar(), 
-                // add_swear_regex(), 
-                // add_swear_string(), 
-                // quit_swear_jar(), 
-                // big_belly_rat(), 
+                age(), 
+                create_swear_jar(), 
+                add_swear_regex(), 
+                add_swear_string(), 
+                quit_swear_jar(), 
+                big_belly_rat(), 
                 zap(), 
-                // six_seven(), 
-                // request_twenty_dollars(), 
-                // public_shame(), 
+                six_seven(), 
+                request_twenty_dollars(), 
+                public_shame(), 
                 kill_dan()],
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
