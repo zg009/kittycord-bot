@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::{self, File}, io::Read};
 use tokio::sync::Mutex;
 use dotenv::dotenv;
-use poise::serenity_prelude::{self as serenity, UserId};
+use poise::serenity_prelude::{self as serenity, MessageBuilder, User, UserId};
 use regex::Regex;
 
 use std::collections::hash_map::Entry;
@@ -127,6 +127,39 @@ async fn quit_swear_jar(
             };
         },
     }
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
+async fn zap(
+    ctx: Context<'_>,
+    #[description="User to zap."] user: serenity::User,
+) -> Result<(), Error> {
+    let response = MessageBuilder::new()
+        .user(ctx.author())
+        .push(" has zapped ")
+        .user(user)
+        .push(".")
+        .build();
+    ctx.reply(response).await.unwrap();
+    Ok(())
+}
+
+
+#[poise::command(slash_command, prefix_command)]
+async fn kill_dan(
+    ctx: Context<'_>
+) -> Result<(), Error> {
+    ctx.reply(format!("{} has killed dan", ctx.author())).await.unwrap();
+    Ok(())
+}
+
+
+#[poise::command(slash_command, prefix_command)]
+async fn request_twenty_dollars(
+    ctx: Context<'_>
+) -> Result<(), Error> {
+    ctx.reply("here is $20 real dollars").await.unwrap();
     Ok(())
 }
 
