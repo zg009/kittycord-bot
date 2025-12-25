@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::{self, File}, io::Read};
 use tokio::sync::Mutex;
 use dotenv::dotenv;
-use poise::{CreateReply, SlashArgument, serenity_prelude::{self as serenity, Attachment, CreateAttachment, CreateEmbed, CreateMessage, MessageBuilder, UserId}};
+use poise::{CreateReply, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId}};
 use regex::Regex;
 
 use std::collections::hash_map::Entry;
@@ -64,8 +64,13 @@ async fn event_handler(
                 None => { 0 },
             };
             println!("{} count of result", result);
-            data.swear_counters.lock().await.entry(new_message.author.id).and_modify(|e| *e += result);
+            let mut sc = data.swear_counters.lock().await;
+            sc.entry(new_message.author.id).and_modify(|e| *e += result);
             println!("{} added {} swears", &new_message.author.id, result);
+            match sc.get(&new_message.author.id) {
+                Some(v) => println!("{} is at {} swears", &new_message.author.id, &v),
+                None => {},
+            }
         }
         _ =>{} 
     };
@@ -114,16 +119,22 @@ async fn quit_swear_jar(
 ) -> Result<(), Error> {
     let curr_user = &ctx.author().id;
     let mut swear_lists = ctx.data().swear_lists.lock().await;
-    let swear_counter = ctx.data().swear_counters.lock().await;
+    
     match swear_lists.entry(*curr_user) {
         Entry::Vacant(_) => {
             ctx.reply(format!("you are not being tracked by the swear jar {}", ctx.author())).await.unwrap();
         },
         Entry::Occupied(oe) => { 
             oe.remove_entry();
-            match swear_counter.get(curr_user) {
-                Some(c) => ctx.reply(format!("you swore {} times before giving up {}.\nyou have deleted your swear jar.", c, ctx.author())).await.unwrap(),
-                None => ctx.reply(format!("you haven't sworn yet {}", ctx.author())).await.unwrap(),
+            let mut sc = ctx.data().swear_counters.lock().await;
+            let c = sc.get(curr_user).cloned();
+            let swear_counter = sc.entry(*curr_user);        
+            match swear_counter {
+                Entry::Occupied(oe2) => {
+                    oe2.remove_entry();
+                    ctx.reply(format!("you swore {} times before giving up {}.\nyou have deleted your swear jar.", c.unwrap(), ctx.author())).await.unwrap()
+                },
+                Entry::Vacant(_) => ctx.reply(format!("you haven't sworn yet {}", ctx.author())).await.unwrap(),
             };
         },
     }
@@ -214,11 +225,13 @@ async fn create_swear_jar(
 ) -> Result<(), Error> {
     let curr_user = &ctx.author().id;
     let mut swear_lists = ctx.data().swear_lists.lock().await;
+    let mut swear_counter = ctx.data().swear_counters.lock().await;
     let mut inserted = true;
     match swear_lists.entry(*curr_user) {
         Entry::Vacant(_) => {
             inserted = false;
             swear_lists.insert(*curr_user, ctx.data().default_swear_list.clone());
+            swear_counter.insert(*curr_user, 0);
             ctx.reply(format!("swear jar created for {}", ctx.author())).await.unwrap();
         },
         _ => { },
