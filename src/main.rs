@@ -135,7 +135,36 @@ async fn public_shame(
     ctx: Context<'_>,
     #[description="User you want to publicly shame"] user: Option<serenity::User>,
 ) -> Result<(), Error> {
-    todo!()
+    let curr_user = &ctx.author().id;
+    let mut swear_lists = ctx.data().swear_lists.lock().await;
+    let swear_counter = ctx.data().swear_counters.lock().await;
+    match user {
+        Some(usr) => match swear_lists.entry(usr.id) {
+            Entry::Vacant(_) => {
+                ctx.reply(format!("{} is not being tracked by the swear jar {}", usr, ctx.author())).await.unwrap();
+            },
+            Entry::Occupied(_) => { 
+                match swear_counter.get(&usr.id) {
+                    Some(c) if *c == 0 => ctx.reply(format!("{} hasn't sworn yet {}", usr, ctx.author())).await.unwrap(), 
+                    Some(c) => ctx.reply(format!("{} has sworn {} times {}.", usr, c, ctx.author())).await.unwrap(),
+                    None => ctx.reply(format!("{} hasn't sworn yet {}", usr, ctx.author())).await.unwrap(),
+                };
+            },
+        },
+        None => match swear_lists.entry(*curr_user) {
+            Entry::Vacant(_) => {
+                ctx.reply(format!("you are not being tracked by the swear jar {}", ctx.author())).await.unwrap();
+            },
+            Entry::Occupied(_) => { 
+                match swear_counter.get(curr_user) {
+                    Some(c) if *c == 0 => ctx.reply(format!("you haven't sworn yet {}", ctx.author())).await.unwrap(), 
+                    Some(c) => ctx.reply(format!("you have sworn {} times {}.", c, ctx.author())).await.unwrap(),
+                    None => ctx.reply(format!("you haven't sworn yet {}", ctx.author())).await.unwrap(),
+                };
+            },
+        }
+    }
+    Ok(())
 }
 
 #[poise::command(slash_command, prefix_command)]
