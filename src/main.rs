@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::{self, File}, io::Read};
 use tokio::sync::Mutex;
 use dotenv::dotenv;
-use poise::serenity_prelude::{self as serenity, CreateEmbed, CreateMessage, MessageBuilder, UserId};
+use poise::{CreateReply, SlashArgument, serenity_prelude::{self as serenity, Attachment, CreateAttachment, CreateEmbed, CreateMessage, MessageBuilder, UserId}};
 use regex::Regex;
 
 use std::collections::hash_map::Entry;
@@ -145,13 +145,12 @@ async fn zap(
     Ok(())
 }
 
+const RAT_LINK: &str = "./src/bigbellyrat.gif";
 #[poise::command(slash_command, prefix_command)]
 async fn big_belly_rat(ctx: Context<'_>) -> Result<(), Error> {
-    let rat_link = "https://images-ext-1.discordapp.net/external/y65s48AezZvaR2ZNCqT2PlEH7761r2NOj4P3iggKYCc/https/media.tenor.com/nW7VLLPeN3oAAAPo/bunny-belly-rub.mp4";
-    let embed = CreateEmbed::new()
-        .attachment(rat_link);
-    let message = CreateMessage::new().content("big belly rat.").embed(embed);
-    ctx.channel_id().send_message(ctx.http(), message).await.unwrap();
+    let attachment = CreateAttachment::path(RAT_LINK).await.unwrap();
+    let builder = CreateReply::default().attachment(attachment);
+    ctx.send(builder).await.unwrap();
     Ok(())
 }
 
@@ -259,13 +258,9 @@ async fn main() {
 
     let intents = serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
 
-    let framework = poise::Framework::builder()
+    let  framework = poise::Framework::builder()
         .options(poise::FrameworkOptions { 
-            commands: vec![
-                age(), 
-                create_swear_jar(), 
-                add_swear_regex(), 
-                add_swear_string(), 
+            commands: vec![age(), create_swear_jar(), add_swear_regex(), add_swear_string(), 
                 quit_swear_jar(), 
                 big_belly_rat(), 
                 zap(), 
@@ -290,6 +285,7 @@ async fn main() {
         })
         .build();
 
+        framework.options().commands.iter().for_each(|command| println!("{}", command.name));
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
         .await;
