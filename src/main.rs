@@ -73,6 +73,14 @@ async fn event_handler(
 }
 
 #[poise::command(slash_command, prefix_command)]
+async fn six_seven(
+    ctx: Context<'_>,
+) -> Result<(), Error> {
+    ctx.say("67").await.unwrap();
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
 async fn add_swear_regex(
     ctx: Context<'_>,
     #[description="The swear regex string you want to add."] swear: String
@@ -80,8 +88,9 @@ async fn add_swear_regex(
     let curr_user = &ctx.author().id;
     let mut swear_lists = ctx.data().swear_lists.lock().await;
     swear_lists.entry(*curr_user).and_modify(|e| {
-        e.push(Regex::new(&swear).unwrap())
+        e.push(Regex::new(&swear).unwrap());
     });
+    ctx.reply(format!("you added {} to your swear jar {}.", swear, curr_user)).await.unwrap();
     Ok(())
 }
 
@@ -95,10 +104,9 @@ async fn add_swear_string(
     swear_lists.entry(*curr_user).and_modify(|e| {
         e.push(Regex::new(&format!("^{}$", swear.trim())).unwrap())
     });
+    ctx.reply(format!("you added {} to your swear jar {}.", swear.trim(), curr_user)).await.unwrap();
     Ok(())
 }
-
-
 
 #[poise::command(slash_command, prefix_command)]
 async fn quit_swear_jar(
