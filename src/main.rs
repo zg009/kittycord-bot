@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::{self, File}, io::Read};
 use tokio::sync::Mutex;
 use dotenv::dotenv;
-use poise::serenity_prelude::{self as serenity, MessageBuilder, User, UserId};
+use poise::serenity_prelude::{self as serenity, CreateEmbed, CreateMessage, EmbedMessageBuilding, MessageBuilder, User, UserId};
 use regex::Regex;
 
 use std::collections::hash_map::Entry;
@@ -145,6 +145,15 @@ async fn zap(
     Ok(())
 }
 
+#[poise::command(slash_command, prefix_command)]
+async fn big_belly_rat(ctx: Context<'_>) -> Result<(), Error> {
+    let rat_link = "https://images-ext-1.discordapp.net/external/y65s48AezZvaR2ZNCqT2PlEH7761r2NOj4P3iggKYCc/https/media.tenor.com/nW7VLLPeN3oAAAPo/bunny-belly-rub.mp4";
+    let embed = CreateEmbed::new()
+        .attachment(rat_link);
+    let message = CreateMessage::new().content("big belly rat.").embed(embed);
+    ctx.channel_id().send_message(ctx.http(), message).await.unwrap();
+    Ok(())
+}
 
 #[poise::command(slash_command, prefix_command)]
 async fn kill_dan(
