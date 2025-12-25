@@ -73,22 +73,58 @@ async fn event_handler(
 }
 
 #[poise::command(slash_command, prefix_command)]
-async fn add_swear(
-    ctx: Context<'_>
+async fn add_swear_regex(
+    ctx: Context<'_>,
+    #[description="The swear regex string you want to add."] swear: String
 ) -> Result<(), Error> {
-    todo!()
+    let curr_user = &ctx.author().id;
+    let mut swear_lists = ctx.data().swear_lists.lock().await;
+    swear_lists.entry(*curr_user).and_modify(|e| {
+        e.push(Regex::new(&swear).unwrap())
+    });
+    Ok(())
 }
+
+#[poise::command(slash_command, prefix_command)]
+async fn add_swear_string(
+    ctx: Context<'_>,
+    #[description="The swear string you want to add."] swear: String,
+) -> Result<(), Error> {
+    let curr_user = &ctx.author().id;
+    let mut swear_lists = ctx.data().swear_lists.lock().await;
+    swear_lists.entry(*curr_user).and_modify(|e| {
+        e.push(Regex::new(&format!("^{}$", swear.trim())).unwrap())
+    });
+    Ok(())
+}
+
+
 
 #[poise::command(slash_command, prefix_command)]
 async fn quit_swear_jar(
     ctx: Context<'_>
 ) -> Result<(), Error> {
-    todo!()
+    let curr_user = &ctx.author().id;
+    let mut swear_lists = ctx.data().swear_lists.lock().await;
+    let swear_counter = ctx.data().swear_counters.lock().await;
+    match swear_lists.entry(*curr_user) {
+        Entry::Vacant(_) => {
+            ctx.reply(format!("you are not being tracked by the swear jar {}", ctx.author())).await.unwrap();
+        },
+        Entry::Occupied(oe) => { 
+            oe.remove_entry();
+            match swear_counter.get(curr_user) {
+                Some(c) => ctx.reply(format!("you swore {} times before giving up {}.\nyou have deleted your swear jar.", c, ctx.author())).await.unwrap(),
+                None => ctx.reply(format!("you haven't sworn yet {}", ctx.author())).await.unwrap(),
+            };
+        },
+    }
+    Ok(())
 }
 
 #[poise::command(slash_command, prefix_command)]
 async fn public_shame(
-    ctx:Context<'_>,
+    ctx: Context<'_>,
     #[description="User you want to publicly shame"] user: Option<serenity::User>,
 ) -> Result<(), Error> {
     todo!()
