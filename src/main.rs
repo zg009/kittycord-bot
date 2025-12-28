@@ -81,8 +81,8 @@ async fn event_handler(
 async fn six_seven(
     ctx: Context<'_>,
 ) -> Result<(), Error> {
-    ctx.say("67").await.unwrap();
-    Ok(())
+    let rep = ctx.say("67").await;
+    reply_handler(&rep)
 }
 
 #[poise::command(slash_command, prefix_command)]
@@ -93,10 +93,14 @@ async fn add_swear_regex(
     let curr_user = &ctx.author().id;
     let mut swear_lists = ctx.data().swear_lists.lock().await;
     swear_lists.entry(*curr_user).and_modify(|e| {
-        e.push(Regex::new(&swear).unwrap());
+        let regex = Regex::new(&swear);
+        match regex {
+            Ok(r) => e.push(r),
+            Err(e) => { println!("{:#?}", e) },
+        }
     });
-    ctx.reply(format!("you added {} to your swear jar {}.", swear, curr_user)).await.unwrap();
-    Ok(())
+    let res = ctx.reply(format!("you added {} to your swear jar {}.", swear, curr_user)).await;
+    reply_handler(&res)
 }
 
 #[poise::command(slash_command, prefix_command)]
