@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::{self, File}, io::Read};
 use tokio::sync::Mutex;
 use dotenv::dotenv;
-use poise::{CreateReply, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId}};
+use poise::{CreateReply, ReplyHandle, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId}};
 use regex::Regex;
 
 use std::collections::hash_map::Entry;
@@ -109,8 +109,8 @@ async fn add_swear_string(
     swear_lists.entry(*curr_user).and_modify(|e| {
         e.push(Regex::new(&format!("^{}$", swear.trim())).unwrap())
     });
-    ctx.reply(format!("you added {} to your swear jar {}.", swear.trim(), curr_user)).await.unwrap();
-    Ok(())
+    let res = ctx.reply(format!("you added {} to your swear jar {}.", swear.trim(), curr_user)).await;
+    reply_handler(&res)
 }
 
 #[poise::command(slash_command, prefix_command)]
@@ -152,8 +152,21 @@ async fn zap(
         .user(user)
         .push(".")
         .build();
-    let reply_handle = ctx.reply(response).await;
-    match reply_handle {
+    let res = ctx.reply(response).await;
+    reply_handler(&res)
+}
+
+const RAT_LINK: &str = "./src/bigbellyrat.gif";
+#[poise::command(slash_command, prefix_command)]
+async fn big_belly_rat(ctx: Context<'_>) -> Result<(), Error> {
+    let attachment = CreateAttachment::path(RAT_LINK).await.unwrap();
+    let builder = CreateReply::default().attachment(attachment);
+    let res = ctx.send(builder).await;
+    reply_handler(&res)
+}
+
+fn reply_handler(res: &Result<ReplyHandle<'_>, serenity::Error>) -> Result<(), Error> {
+    match res {
         Ok(_) => Ok(()),
         Err(e) => {
             println!("{:#?}", e);
@@ -162,30 +175,20 @@ async fn zap(
     }
 }
 
-const RAT_LINK: &str = "./src/bigbellyrat.gif";
-#[poise::command(slash_command, prefix_command)]
-async fn big_belly_rat(ctx: Context<'_>) -> Result<(), Error> {
-    let attachment = CreateAttachment::path(RAT_LINK).await.unwrap();
-    let builder = CreateReply::default().attachment(attachment);
-    ctx.send(builder).await.unwrap();
-    Ok(())
-}
-
 #[poise::command(slash_command, prefix_command)]
 async fn kill_dan(
     ctx: Context<'_>
 ) -> Result<(), Error> {
-    ctx.reply(format!("{} has killed dan", ctx.author())).await.unwrap();
-    Ok(())
+    let res = ctx.reply(format!("{} has killed dan", ctx.author())).await;
+    reply_handler(&res)
 }
-
 
 #[poise::command(slash_command, prefix_command)]
 async fn request_twenty_dollars(
     ctx: Context<'_>
 ) -> Result<(), Error> {
-    ctx.reply("here is $20 real dollars").await.unwrap();
-    Ok(())
+    let res = ctx.reply("here is $20 real dollars").await;
+    reply_handler(&res)
 }
 
 #[poise::command(slash_command, prefix_command)]
