@@ -107,7 +107,11 @@ async fn add_swear_string(
     let curr_user = &ctx.author().id;
     let mut swear_lists = ctx.data().swear_lists.lock().await;
     swear_lists.entry(*curr_user).and_modify(|e| {
-        e.push(Regex::new(&format!("^{}$", swear.trim())).unwrap())
+        let regex = Regex::new(&format!("^{}$", swear.trim()));
+        match regex {
+            Ok(r) => e.push(r),
+            Err(e) => { println!("{:#?}", e) },
+        }
     });
     let res = ctx.reply(format!("you added {} to your swear jar {}.", swear.trim(), curr_user)).await;
     reply_handler(&res)
