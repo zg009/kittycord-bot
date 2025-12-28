@@ -152,8 +152,14 @@ async fn zap(
         .user(user)
         .push(".")
         .build();
-    ctx.reply(response).await.unwrap();
-    Ok(())
+    let reply_handle = ctx.reply(response).await;
+    match reply_handle {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            println!("{:#?}", e);
+            Ok(())
+        }
+    }
 }
 
 const RAT_LINK: &str = "./src/bigbellyrat.gif";
