@@ -267,6 +267,8 @@ async fn create_swear_jar(
 async fn daily_reward(ctx: Context<'_>) -> Result<(), Error> {
     // get the function caller
     let caller = ctx.author().id;
+    // are User objects cheap to clone?
+    let author_name = ctx.author().name.clone();
     // get the points struct
     let mut user_points = ctx.data().user_points.lock().await;
     // get their last redeem
@@ -304,15 +306,15 @@ async fn daily_reward(ctx: Context<'_>) -> Result<(), Error> {
         Entry::Occupied(mut occupied_entry) => {
             if can_redeem {
                 let new_points = occupied_entry.get_mut().add(100);
-                ctx.reply(format!("{} you now have {} points.", caller, new_points)).await.unwrap();
+                ctx.reply(format!("{} you now have {} points.", author_name, new_points)).await.unwrap();
             } else {
-                ctx.reply(format!("{} you already redeemed for today.", caller)).await.unwrap();
+                ctx.reply(format!("{} you already redeemed for today.", author_name)).await.unwrap();
             }
         },
         // if they cannot be found, it should be their first redeem, no can_redeem check needed
         Entry::Vacant(vacant_entry) => {
             let new_points = vacant_entry.insert(100);
-            ctx.reply(format!("{} you now have {} points.", caller, new_points)).await.unwrap();
+            ctx.reply(format!("{} you now have {} points.", author_name, new_points)).await.unwrap();
         },
     };
     Ok(())
