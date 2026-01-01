@@ -264,6 +264,17 @@ async fn create_swear_jar(
 }
 
 #[poise::command(slash_command, prefix_command)]
+async fn gamble(
+    ctx: Context<'_>,
+    #[description = "amount of points to gamble away"] points: u32
+) -> Result<(), Error> {
+    let author_name = ctx.author().name.clone();
+    let caller = ctx.author().id;
+    let mut user_points = ctx.data().user_points.lock().await;
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
 async fn daily_reward(ctx: Context<'_>) -> Result<(), Error> {
     // get the function caller
     let caller = ctx.author().id;
