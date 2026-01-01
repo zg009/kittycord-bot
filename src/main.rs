@@ -9,6 +9,7 @@ use std::collections::hash_map::Entry;
 type SwearCounterMap = HashMap<UserId, u32>;
 type PersonalSwearList = HashMap<UserId, Vec<Regex>>;
 type PointsMap = HashMap<UserId, u32>;
+type DailyRedeem = HashMap<UserId, time::Time>;
 
 fn write_scm_to_file(swear_counter_map: &SwearCounterMap, file_path: &str) -> Result<(), Error> {
     let file = File::create(file_path).expect("path for swear counter map file could not be found");
@@ -29,7 +30,8 @@ struct Data {
     default_swear_list: Vec<Regex>,
     swear_lists: Mutex<PersonalSwearList>,
     swear_counters: Mutex<SwearCounterMap>,
-    user_points: Mutex<PointsMap>
+    user_points: Mutex<PointsMap>,
+    user_redeem_time: Mutex<DailyRedeem>
 }
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -313,6 +315,7 @@ async fn main() {
                     swear_lists: Mutex::new(HashMap::new()),
                     swear_counters: Mutex::new(saved_swear_counters),
                     user_points: Mutex::new(HashMap::new()),
+                    user_redeem_time: Mutex::new(HashMap::new()),
                 })
             })
         })
