@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::{self, File}, io::Read, ops::Add};
+use std::{collections::{HashMap, hash_map::OccupiedEntry}, fs::{self, File}, io::Read, ops::Add};
 use tokio::sync::Mutex;
 use dotenv::dotenv;
 use poise::{CreateReply, ReplyHandle, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId}};
@@ -6,10 +6,12 @@ use regex::Regex;
 
 use std::collections::hash_map::Entry;
 
+
 type SwearCounterMap = HashMap<UserId, u32>;
 type PersonalSwearList = HashMap<UserId, Vec<Regex>>;
 type PointsMap = HashMap<UserId, u32>;
 type DailyRedeem = HashMap<UserId, time::OffsetDateTime>;
+type MainRng = Arc<Mutex<ThreadRng>>;
 
 fn write_scm_to_file(swear_counter_map: &SwearCounterMap, file_path: &str) -> Result<(), Error> {
     let file = File::create(file_path).expect("path for swear counter map file could not be found");
@@ -31,7 +33,8 @@ struct Data {
     swear_lists: Mutex<PersonalSwearList>,
     swear_counters: Mutex<SwearCounterMap>,
     user_points: Mutex<PointsMap>,
-    user_redeem_time: Mutex<DailyRedeem>
+    user_redeem_time: Mutex<DailyRedeem>,
+    // callable_rng: Arc<Mutex<ThreadRng>>
 }
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -263,6 +266,8 @@ async fn create_swear_jar(
     Ok(())
 }
 
+use rand::{prelude::*};
+
 #[poise::command(slash_command, prefix_command)]
 async fn gamble(
     ctx: Context<'_>,
@@ -271,6 +276,20 @@ async fn gamble(
     let author_name = ctx.author().name.clone();
     let caller = ctx.author().id;
     let mut user_points = ctx.data().user_points.lock().await;
+    match user_points.entry(caller) {
+        Entry::Occupied(occupied_entry) => {
+            let curr_points = *occupied_entry.get();
+            
+            if points <= curr_points {
+                // let rand_num = rng.random::<u32>();
+            } else {
+                ctx.reply(format!("{}, you cannot gamble {} points when you only have {} points.", author_name, points, curr_points)).await.unwrap();
+            }
+        },
+        Entry::Vacant(_) => {
+            ctx.reply(format!("{}, you have no points to gamble! have you done your daily redeem?", author_name)).await.unwrap();
+        },
+    }
     Ok(())
 }
 
@@ -366,6 +385,7 @@ async fn main() {
                 quit_swear_jar(), 
                 big_belly_rat(), 
                 daily_reward(),
+                gamble(),
                 zap(), 
                 six_seven(), 
                 request_twenty_dollars(), 
