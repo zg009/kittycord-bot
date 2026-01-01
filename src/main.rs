@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::{self, File}, io::Read};
+use std::{collections::HashMap, fs::{self, File}, io::Read, ops::Add};
 use tokio::sync::Mutex;
 use dotenv::dotenv;
 use poise::{CreateReply, ReplyHandle, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId}};
@@ -9,7 +9,7 @@ use std::collections::hash_map::Entry;
 type SwearCounterMap = HashMap<UserId, u32>;
 type PersonalSwearList = HashMap<UserId, Vec<Regex>>;
 type PointsMap = HashMap<UserId, u32>;
-type DailyRedeem = HashMap<UserId, time::Time>;
+type DailyRedeem = HashMap<UserId, time::OffsetDateTime>;
 
 fn write_scm_to_file(swear_counter_map: &SwearCounterMap, file_path: &str) -> Result<(), Error> {
     let file = File::create(file_path).expect("path for swear counter map file could not be found");
@@ -264,6 +264,61 @@ async fn create_swear_jar(
 }
 
 #[poise::command(slash_command, prefix_command)]
+async fn daily_reward(ctx: Context<'_>) -> Result<(), Error> {
+    // get the function caller
+    let caller = ctx.author().id;
+    // get the points struct
+    let mut user_points = ctx.data().user_points.lock().await;
+    // get their last redeem
+    let mut user_redeem = ctx.data().user_redeem_time.lock().await;
+    // logic to determine whether they can redeem it
+    let can_redeem = match user_redeem.entry(caller) {
+        // if there is already a previous time entry
+        Entry::Occupied(mut occupied_entry) => {
+            let last_time = occupied_entry.get();
+            let curr_time = time::OffsetDateTime::now_utc();
+            let res = *last_time - curr_time;
+            // if it has been equal or greater than 24 utc hours
+            if res.whole_hours() >= 24 {
+                // update the time in the struct
+                occupied_entry.insert(curr_time);
+                // they can redeem
+                true
+            // not been more than 24 hours
+            } else {
+                // can't redeem, don't update
+                false
+            }
+        },
+        // first redeem
+        Entry::Vacant(vacant_entry) => {
+            // record redemption time
+            vacant_entry.insert(time::OffsetDateTime::now_utc());
+            // can redeem
+            true
+        },
+    };
+    // get the points
+    match user_points.entry(caller) {
+        // if they are already stocking points
+        Entry::Occupied(mut occupied_entry) => {
+            if can_redeem {
+                let new_points = occupied_entry.get_mut().add(100);
+                ctx.reply(format!("{} you now have {} points.", caller, new_points)).await.unwrap();
+            } else {
+                ctx.reply(format!("{} you already redeemed for today.", caller)).await.unwrap();
+            }
+        },
+        // if they cannot be found, it should be their first redeem, no can_redeem check needed
+        Entry::Vacant(vacant_entry) => {
+            let new_points = vacant_entry.insert(100);
+            ctx.reply(format!("{} you now have {} points.", caller, new_points)).await.unwrap();
+        },
+    };
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
 async fn age(
     ctx: Context<'_>,
     #[description = "Selected user"] user: Option<serenity::User>,
@@ -297,6 +352,7 @@ async fn main() {
             commands: vec![age(), create_swear_jar(), add_swear_regex(), add_swear_string(), 
                 quit_swear_jar(), 
                 big_belly_rat(), 
+                daily_reward(),
                 zap(), 
                 six_seven(), 
                 request_twenty_dollars(), 
