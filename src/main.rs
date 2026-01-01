@@ -1,4 +1,5 @@
-use std::{collections::{HashMap, hash_map::OccupiedEntry}, fs::{self, File}, io::Read, ops::Add};
+use std::{collections::HashMap, fs::{self, File}, io::Read, ops::{Add, Sub}};
+use rand::Rng;
 use tokio::sync::Mutex;
 use dotenv::dotenv;
 use poise::{CreateReply, ReplyHandle, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId}};
@@ -11,7 +12,6 @@ type SwearCounterMap = HashMap<UserId, u32>;
 type PersonalSwearList = HashMap<UserId, Vec<Regex>>;
 type PointsMap = HashMap<UserId, u32>;
 type DailyRedeem = HashMap<UserId, time::OffsetDateTime>;
-type MainRng = Arc<Mutex<ThreadRng>>;
 
 fn write_scm_to_file(swear_counter_map: &SwearCounterMap, file_path: &str) -> Result<(), Error> {
     let file = File::create(file_path).expect("path for swear counter map file could not be found");
@@ -34,7 +34,6 @@ struct Data {
     swear_counters: Mutex<SwearCounterMap>,
     user_points: Mutex<PointsMap>,
     user_redeem_time: Mutex<DailyRedeem>,
-    // callable_rng: Arc<Mutex<ThreadRng>>
 }
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -266,8 +265,6 @@ async fn create_swear_jar(
     Ok(())
 }
 
-use rand::{prelude::*};
-
 #[poise::command(slash_command, prefix_command)]
 async fn gamble(
     ctx: Context<'_>,
@@ -277,11 +274,17 @@ async fn gamble(
     let caller = ctx.author().id;
     let mut user_points = ctx.data().user_points.lock().await;
     match user_points.entry(caller) {
-        Entry::Occupied(occupied_entry) => {
-            let curr_points = *occupied_entry.get();
-            
+        Entry::Occupied(mut occupied_entry) => {
+            let curr_points = *occupied_entry.get_mut();
             if points <= curr_points {
-                // let rand_num = rng.random::<u32>();
+                let rand_num = rand::rng().random_range(0..100);
+                if rand_num < 50 {
+                    let new_points = curr_points.add(points);
+                    ctx.reply(format!("{}, you won {} points! you have {} points.", author_name, points, new_points)).await.unwrap();
+                } else {
+                    let new_points = curr_points.sub(points);
+                    ctx.reply(format!("{}, you lost {} points! you have {} points.", author_name, points, new_points)).await.unwrap();
+                }
             } else {
                 ctx.reply(format!("{}, you cannot gamble {} points when you only have {} points.", author_name, points, curr_points)).await.unwrap();
             }
