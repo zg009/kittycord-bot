@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs::{self, File}, io::Read, ops::{Add, Sub}};
 use rand::Rng;
 use tokio::sync::Mutex;
 use dotenv::dotenv;
-use poise::{CreateReply, ReplyHandle, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId}};
+use poise::{CreateReply, ReplyHandle, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId, model::user}};
 use regex::Regex;
 
 use std::collections::hash_map::Entry;
@@ -277,12 +277,14 @@ async fn gamble(
         Entry::Occupied(mut occupied_entry) => {
             let curr_points = *occupied_entry.get_mut();
             if points <= curr_points {
-                let rand_num = rand::rng().random_range(0..100);
+                let rand_num = rand::rng().random_range(0..99);
                 if rand_num < 50 {
                     let new_points = curr_points.add(points);
+                    user_points.insert(caller, new_points);
                     ctx.reply(format!("{}, you won {} points! you have {} points.", author_name, points, new_points)).await.unwrap();
                 } else {
                     let new_points = curr_points.sub(points);
+                    user_points.insert(caller, new_points);
                     ctx.reply(format!("{}, you lost {} points! you have {} points.", author_name, points, new_points)).await.unwrap();
                 }
             } else {
