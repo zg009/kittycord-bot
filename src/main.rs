@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs::{self, File}, io::Read, ops::{Add, Sub}};
 use rand::Rng;
 use tokio::sync::Mutex;
 use dotenv::dotenv;
-use poise::{CreateReply, ReplyHandle, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId, model::user}};
+use poise::{CreateReply, ReplyHandle, serenity_prelude::{self as serenity, CreateAttachment, MessageBuilder, UserId}};
 use regex::Regex;
 
 use std::collections::hash_map::Entry;
